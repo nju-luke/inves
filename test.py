@@ -5,8 +5,9 @@
 # df.drop('单位',inplace=True)
 # df = df.astype(float)/1e6
 # print(df)
+from time import sleep
 
-
+import numpy as np
 import pandas as pd
 import tushare as ts
 from sqlalchemy import create_engine, CHAR
@@ -43,9 +44,9 @@ def get_fina_indicator(start_date=None, end_date=None):
         start_date = end_date
 
     idx_start = 0
-    n_batch = 5
+    n_batch = 50
     idx_end = n_batch
-    while idx_end < 10:
+    while idx_end < num_stocks:
         print(f"Get data: {idx_start}--{idx_end}")
         cur_stocks = ','.join(df_stock_lists.ts_code[idx_start:idx_end])
         df = pro.fina_indicator(ts_code=cur_stocks, start_date=start_date, limit=10000)
@@ -56,18 +57,20 @@ def get_fina_indicator(start_date=None, end_date=None):
         idx_start = idx_end
         idx_end += n_batch
 
+        sleep(np.random.rand()*2)
+
 
 
 ## 初次建表
 engine.execute("drop table if exists fina_indicator ")
-get_fina_indicator(start_date='20200331')
+get_fina_indicator(start_date='20141201')
 print('success')
 
 
-## 增量更新
-engine.execute("drop table if exists fina_indicator ")
-get_fina_indicator(end_date='20200331')
-print('success')
+# ## 增量更新
+# engine.execute("drop table if exists fina_indicator ")
+# get_fina_indicator(end_date='20200331')
+# print('success')
 
 
 ## 补充数据
