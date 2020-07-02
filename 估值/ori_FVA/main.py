@@ -3,7 +3,7 @@
 author: Luke
 datettime: 2020/4/5 1:13
 """
-from ori_FVA.utils import Company, CompanyPredict, get_data, dump_company
+from utils import Company, CompanyPredict, get_data, dump_company
 
 code = '600519'
 date = '20181231'
