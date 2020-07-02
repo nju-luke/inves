@@ -8,16 +8,14 @@ import tushare as ts
 import pandas as pd
 import sqlite3
 import datetime
+
 conn = sqlite3.connect('data')
-
-
-
 
 
 def get_data(year, quarter, func, table_name, if_exists='append'):
     try:
         df = pd.read_sql(f'select * from {table_name} where year={year} and quarter={quarter}', conn)
-        if len(df) <=10:
+        if len(df) <= 10:
             raise Exception
     except:
         df = func(year, quarter)
@@ -26,21 +24,21 @@ def get_data(year, quarter, func, table_name, if_exists='append'):
         df.to_sql(table_name, conn, if_exists='append')
     return df
 
-# func = ts.get_profit_data
+
+func = ts.get_profit_data
 # df = get_data(2019,4, func, 'profit_data')
 # df1 = get_data(2018,4, func, 'profit_data')
 # df2 = get_data(2017,4, func, 'profit_data')
 # df3 = get_data(2016,4, func, 'profit_data')
 
 
-
 def get_basic(date, table_name):
-    date_ = datetime.datetime(year=int(date[:4]),month=int(date[5:7]),day=int(date[8:]))
+    date_ = datetime.datetime(year=int(date[:4]), month=int(date[5:7]), day=int(date[8:]))
     year = date_.year
     quarter = (date_.month - 1) // 3 + 1
     try:
         df = pd.read_sql(f'select * from {table_name} where year={year} and quarter={quarter}', conn)
-        if len(df) <=10:
+        if len(df) <= 10:
             raise Exception
     except:
         flag = False
@@ -59,9 +57,8 @@ def get_basic(date, table_name):
         df.to_sql(table_name, conn, if_exists='append')
     return df
 
+
 df = get_basic('2016-12-31', 'stock_basics')
-
-
 
 # ## today_all
 # df = ts.get_today_all()
@@ -129,5 +126,3 @@ df = get_basic('2016-12-31', 'stock_basics')
 
 
 print('done')
-
-
