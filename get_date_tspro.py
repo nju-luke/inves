@@ -33,9 +33,10 @@ def process_fina_indicator_to_sql(df_new):
                       CHAR(8)})
 
     print("success!!")
+    return df_new
 
 
-def get_fina_indicator(start_date=None, end_date=None):
+def download_fina_indicator_all(start_date=None, end_date=None):
     """
     财务指标数据，https://tushare.pro/document/2?doc_id=79
     # ## 初次建表
@@ -75,32 +76,76 @@ def get_fina_indicator(start_date=None, end_date=None):
 
     print(f"Get data success for {start_date} to {end_date} ")
 
-# ## 初次建表
-# engine.execute("drop table if exists fina_indicator ")
-# get_fina_indicator(start_date='20141201')
-# print('success')
+
+def get_fina_indicator(ts_code, start_date='20141201'):
+    """
+    财务指标数据
+    :param ts_code:
+    :param start_date:
+    :return:
+    """
+    df = pd.read_sql(f'select * from fina_indicator where ts_code="{ts_code}" ', engine)
+    if len(df) > 0:
+        return df
+
+    df = pro.fina_indicator(ts_code=ts_code, start_date=start_date, limit=10000)
+    df_new = pd.merge(df_stock_lists[df_stock_lists.ts_code==ts_code].loc[:, ['ts_code', 'name']], df, on='ts_code')
+    df_new = process_fina_indicator_to_sql(df_new)
+
+    return df_new
 
 
-# ## 增量更新
-# get_fina_indicator(end_date='20200331')
+
+def get_fina_mainbz(ts_code):
+    ##主营业务构成 https://tushare.pro/document/2?doc_id=81
+
+    df = pd.read_sql(f'select * from fina_mainbz where ts_code="{ts_code}" ', engine)
+    if len(df) > 0:
+        return df
+
+    df = pro.fina_mainbz(ts_code=ts_code, type='P', start_date='20151231')
+
+    ## 删除其中重复的项
+    try:
+        df = df.assign(rnk=df.groupby(['end_date', 'bz_item'])['bz_cost'].rank(method='first', ascending=False))
+        df = df[(df.rnk < 2) | df.rnk.isna()].drop('rnk', axis=1)
+
+        ## 计算比率
+        df1 = df.groupby(['end_date', 'bz_item']).sum().groupby(level=0).apply(lambda x: 100 * x / x.sum()).reset_index()
+        df_new = pd.merge(df, df1, on=['end_date', 'bz_item'], suffixes=('', '_ratio'))
+    except:
+        df_new = df
+
+    ## 加到数据库中
+    df_new['code_date'] = df_new.ts_code + '_' + df_new.end_date
+    df_new.set_index('code_date', inplace=True)
+    df_new.to_sql('fina_mainbz', engine, if_exists='append', index_label='code_date',
+                  dtype={'code_date': CHAR(20), 'ts_code': CHAR(10), 'biz_item': CHAR(100), 'end_date':
+                      CHAR(8)})
+
+    return df_new
 
 
-## 补充数据
+def download_fina_mainbz_all():
+    ## 建立主营业务表
+    for i, ts_code in enumerate(df_stock_lists.ts_code):
+        df = get_fina_mainbz(ts_code)
+
+        if i % 100 == 0:
+            print(f"success for : {i}")
+
+        if i > 10:
+            break
+    print("Dowanload all fina mainbz done!")
 
 
-##主营业务构成 https://tushare.pro/document/2?doc_id=81
-# fina_mainbz
+if __name__ == '__main__':
+    # ## 初次建表
+    # engine.execute("drop table if exists fina_indicator ")
+    # download_fina_indicator_all(start_date='20141201')
 
-# pro.fina_mainbz()
-for i, ts_code in enumerate(df_stock_lists.ts_code):
+    df = get_fina_indicator('000001.SZ')
 
-    df = pro.fina_mainbz(ts_code=ts_code, type='P',start_date='20151231')
+    # download_fina_mainbz_all()
 
-    # df_sum = df.groupby('end_date')['bz_sales'].sum()
-
-    if i % 100 == 0:
-        print(f"success for : {i}")
-
-    break
-
-print('done')
+    print('done')
