@@ -4,6 +4,10 @@ author: byangg
 datettime: 6/12/2020 09:46
 """
 
+'''
+使用tushare获取盈利数据、成长数据、实时交易数据等
+'''
+
 import tushare as ts
 import pandas as pd
 import sqlite3
