@@ -236,8 +236,8 @@ if __name__ == '__main__':
     # download_fina_mainbz_all()
 
     ## 每日指标
-    get_daily_basic_all()
+    # get_daily_basic_all()
 
     ## 获取某一天的数据
-    # get_daily_by_date()
+    get_daily_by_date()
     print('done')
