@@ -70,6 +70,10 @@ def download_fina_indicator_all(start_date=None, end_date=None):
     idx_start = 0
     n_batch = 50
     idx_end = n_batch
+    try:
+        pd.read_sql('truncate table fina_indicator',engine)
+    except:
+        pass
     while idx_end < num_stocks:
         print(f"Get data: {idx_start}--{idx_end}")
         cur_stocks = ','.join(df_stock_lists.ts_code[idx_start:idx_end])
@@ -216,7 +220,7 @@ def get_daily_basic_by_date(trade_date=None):
 if __name__ == '__main__':
     # ## 初次建表 财务指标
     # engine.execute("drop table if exists fina_indicator ")
-    download_fina_indicator_all(start_date='20141201')
+    # download_fina_indicator_all(start_date='20141201')
 
     # df = get_fina_indicator('000001.SZ')
 
@@ -226,9 +230,10 @@ if __name__ == '__main__':
     # download_fina_mainbz_all()
 
     ## 每日指标
-    get_daily_basic_all()
+    # get_daily_basic_all()
 
     ## 获取某一天的数据
-    get_daily_code_date("002027.SZ")
+    # get_daily_code_date("002027.SZ")
     get_daily_basic_by_date()
+
     print('done')
