@@ -5,8 +5,9 @@ datettime: 2020/7/3 7:47
 """
 import time
 
-import pymysql
-from sqlalchemy.exc import ProgrammingError
+from utils import to_mysql
+
+# import pymysql
 
 "使用tushare pro 接口获取数据"
 
@@ -15,35 +16,34 @@ import datetime
 import numpy as np
 import pandas as pd
 import tushare as ts
-from sqlalchemy import create_engine, VARCHAR
+from sqlalchemy import create_engine
 
 engine = create_engine('mysql+pymysql://root:00000@localhost:3306/stocks')
-conn = pymysql.connect(host='localhost', port=3306, user='root', passwd='00000', db='stocks')
-cur = conn.cursor()
+# conn = pymysql.connect(host='localhost', port=3306, user='root', passwd='00000', db='stocks')
+# cur = conn.cursor()
 
 pro = ts.pro_api()
 
-# 查询当前所有正常上市交易的股票列表
-df_stock_lists = pro.stock_basic(fields='ts_code,symbol,name,area,industry,list_date')
-df_stock_lists.to_sql('stock_basic', engine, if_exists='replace',
-                      dtype=dict((c, VARCHAR(100)) for c in df_stock_lists.columns)
-                      )
+KEY = "ts_code"
 
+
+def get_stock_list():
+    try:
+        # 查询当前所有正常上市交易的股票列表
+        df_stock_lists = pro.stock_basic(fields='ts_code,symbol,name,area,industry,list_date')
+
+        num_stocks = len(df_stock_lists)
+        print(f"There are {num_stocks} stocks available!")
+
+        to_mysql(df_stock_lists, "stock_basic", "replace")
+    except:
+        print("Data from website not available, use local data.")
+        df_stock_lists = pd.read_sql("select * from stock_basic", engine)
+    df_stock_lists.reset_index(inplace=True)
+    return df_stock_lists
+
+df_stock_lists = get_stock_list()
 num_stocks = len(df_stock_lists)
-print(f"There are {num_stocks} stocks available!")
-
-
-def process_fina_indicator_to_sql(df_new):
-    df_new['code_date'] = df_new.ts_code + '_' + df_new.end_date
-    df_new.set_index('code_date', inplace=True)
-    df_new.to_sql('fina_indicator', engine, if_exists='append', index_label='code_date',
-                  dtype={'code_date': VARCHAR(20), 'ts_code': VARCHAR(10), 'name': VARCHAR(20), 'ann_date': VARCHAR(8),
-                         'end_date':
-                             VARCHAR(8)})
-
-    print("success!!")
-    return df_new
-
 
 def download_fina_indicator_all(start_date=None, end_date=None):
     """
@@ -76,7 +76,7 @@ def download_fina_indicator_all(start_date=None, end_date=None):
         df = pro.fina_indicator(ts_code=cur_stocks, start_date=start_date, limit=10000)
         df_new = pd.merge(df_stock_lists.loc[:, ['ts_code', 'name']], df, on='ts_code')
 
-        process_fina_indicator_to_sql(df_new)
+        to_mysql(df_new, "fina_indicator", "append")
 
         idx_start = idx_end
         idx_end += n_batch
@@ -99,14 +99,14 @@ def get_fina_indicator(ts_code, start_date='20141201'):
 
     df = pro.fina_indicator(ts_code=ts_code, start_date=start_date, limit=10000)
     df_new = pd.merge(df_stock_lists[df_stock_lists.ts_code == ts_code].loc[:, ['ts_code', 'name']], df, on='ts_code')
-    df_new = process_fina_indicator_to_sql(df_new)
+    df_new = to_mysql(df_new, "fina_indicator", "append")
 
     return df_new
 
 
 def get_fina_mainbz(ts_code):
     ##主营业务构成 https://tushare.pro/document/2?doc_id=81
-
+    ## todo 一部分存在一部分不存在
     try:
         df = pd.read_sql(f'select * from fina_mainbz where ts_code="{ts_code}" ', engine)
         if len(df) > 0:
@@ -128,12 +128,7 @@ def get_fina_mainbz(ts_code):
     except:
         df_new = df
 
-    ## 加到数据库中
-    df_new['code_date'] = df_new.ts_code + '_' + df_new.end_date
-    df_new.set_index('code_date', inplace=True)
-    df_new.to_sql('fina_mainbz', engine, if_exists='append', index_label='code_date',
-                  dtype={'code_date': VARCHAR(20), 'ts_code': VARCHAR(10), 'biz_item': VARCHAR(100), 'end_date':
-                      VARCHAR(8)})
+    to_mysql(df_new, "fina_mainbz", "append")
 
     return df_new
 
@@ -142,12 +137,13 @@ def download_fina_mainbz_all():
     ## 建立主营业务表
     print("开始建立主营业务表")
     for i, ts_code in enumerate(df_stock_lists.ts_code):
-        df = get_fina_mainbz(ts_code)
+        time1 = time.time()
+        df = get_fina_mainbz(ts_code)  ## todo concat
 
         if i % 100 == 0:
-            print(f"success for : {i+1}")
+            print(f"success for : {i + 1}")
 
-        sleep(1)
+        sleep(max(0, 1 - (time.time() - time1)) + 0.05)
 
         # if i > 10:
         #     break
@@ -166,59 +162,53 @@ def get_daily_basic_all(ts_codes=None, start_date='20180101'):
 
     str_ts_code = []
     for i, ts_code in enumerate(ts_codes):
-        if i%100 == 0:
-            print(f"Success num: {i+1}")
+        if i % 100 == 0:
+            print(f"Success num: {i + 1}")
         time1 = time.time()
-        # try:
-        #     df_exists = pd.read_sql(f"select trade_date from daily_basic where ts_code='{ts_code}' "
-        #                             f"order by trade_date desc limit 1", engine)
-        #     if len(df_exists) > 0 and start_date < df_exists.iloc[0, 0]:
-        #         start_date = df_exists.iloc[0, 0]
-        # except ProgrammingError:
-        #     pass
-        cur.execute(f"select trade_date from daily_basic where ts_code='{ts_code}' limit 1")
-        row_1 = cur.fetchone()
-        if row_1 != None:
+
+        # cur.execute(f"select trade_date from daily_basic where ts_code='{ts_code}' limit 1")
+        # row_1 = cur.fetchone()
+        df = pd.read_sql(f"select trade_date from daily_basic where ts_code='{ts_code}' limit 1", engine)
+        if len(df)>0:
             continue
 
         str_ts_code += [ts_code]
-        if i % 11 != 10 and i < len(ts_codes) - 1 :
+        if i % 11 != 10 and i < len(ts_codes) - 1:
             continue
         if len(ts_code) == 0: continue
 
         str_ts_code = ",".join(str_ts_code)
         df = pro.daily_basic(ts_code=str_ts_code, start_date=start_date, limit=10000)
 
-        df['code_date'] = df.ts_code + '_' + df.trade_date
-        df.set_index('code_date', inplace=True)
-        df.to_sql('daily_basic', engine, if_exists='append', index_label='code_date',
-                  dtype={'code_date': VARCHAR(20), 'ts_code': VARCHAR(10), 'trade_date': VARCHAR(8)}
-                  )
-        sleep(max(0,1 - (time.time() - time1)) + 0.05)
+        to_mysql(df, "daily_basic", "append")
+
+        sleep(max(0, 1 - (time.time() - time1)) + 0.05)
         str_ts_code = []
 
     print(f"Get data from {start_date} success.")
 
+
 def get_daily_code_date(ts_code, start_date='20180101'):
-    cur.execute(f"delete from daily_basic where ts_code='{ts_code}'")
+    try:
+        pd.read_sql(f"delete from daily_basic where ts_code='{ts_code}'", engine)
+    except:
+        pass
     print(f"delete data for {ts_code} success.")
     df = pro.daily_basic(ts_code=ts_code, start_date=start_date, limit=10000)
 
-    df['code_date'] = df.ts_code + '_' + df.trade_date
-    df.set_index('code_date', inplace=True)
-    df.to_sql('daily_basic', engine, if_exists='append', index_label='code_date',
-              dtype={'code_date': VARCHAR(20), 'ts_code': VARCHAR(10), 'trade_date': VARCHAR(8)}
-              )
+    to_mysql(df, "daily_basic", "append")
     print(f"Get data for {ts_code} from f{start_date} success.")
+    return df
 
 
-def get_daily_by_date(trade_date=None):
+def get_daily_basic_by_date(trade_date=None):
     if not trade_date:
-        trade_date = datetime.datetime.today().strftime("%Y%m%d")
+        trade_date = (datetime.datetime.today() - datetime.timedelta(days=1)).strftime("%Y%m%d")
     print(f"start get data for {trade_date}")
     df = pro.query('daily_basic', ts_code='', trade_date=trade_date,
                    )
-    df.to_sql(f'data_{trade_date}',engine, if_exists='replace')
+    # df.to_sql(f'data_{trade_date}', engine, if_exists='replace')
+    to_mysql(df, f'data_{trade_date}', "replace")
     print(f'Get data success for : {trade_date}')
     return df
 
@@ -226,7 +216,7 @@ def get_daily_by_date(trade_date=None):
 if __name__ == '__main__':
     # ## 初次建表 财务指标
     # engine.execute("drop table if exists fina_indicator ")
-    # download_fina_indicator_all(start_date='20141201')
+    download_fina_indicator_all(start_date='20141201')
 
     # df = get_fina_indicator('000001.SZ')
 
@@ -236,8 +226,9 @@ if __name__ == '__main__':
     # download_fina_mainbz_all()
 
     ## 每日指标
-    # get_daily_basic_all()
+    get_daily_basic_all()
 
     ## 获取某一天的数据
-    get_daily_by_date()
+    get_daily_code_date("002027.SZ")
+    get_daily_basic_by_date()
     print('done')
