@@ -172,9 +172,12 @@ def get_daily_basic_all(ts_codes=None, start_date='20180101'):
 
         # cur.execute(f"select trade_date from daily_basic where ts_code='{ts_code}' limit 1")
         # row_1 = cur.fetchone()
-        df = pd.read_sql(f"select trade_date from daily_basic where ts_code='{ts_code}' limit 1", engine)
-        if len(df)>0:
-            continue
+        try:
+            df = pd.read_sql(f"select trade_date from daily_basic where ts_code='{ts_code}' limit 1", engine)
+            if len(df)>0:
+                continue
+        except:
+            pass
 
         str_ts_code += [ts_code]
         if i % 11 != 10 and i < len(ts_codes) - 1:
@@ -207,11 +210,15 @@ def get_daily_code_date(ts_code, start_date='20180101'):
 
 def get_daily_basic_by_date(trade_date=None):
     if not trade_date:
-        trade_date = (datetime.datetime.today() - datetime.timedelta(days=1)).strftime("%Y%m%d")
-    print(f"start get data for {trade_date}")
-    df = pro.query('daily_basic', ts_code='', trade_date=trade_date,
-                   )
-    # df.to_sql(f'data_{trade_date}', engine, if_exists='replace')
+        trade_date = datetime.datetime.today().strftime("%Y%m%d")
+    while True:
+        print(f"start get data for {trade_date}")
+        df = pro.query('daily_basic', ts_code='', trade_date=trade_date,)
+        # df.to_sql(f'data_{trade_date}', engine, if_exists='replace')
+        if len(df) > 0:
+            break
+        else:
+            trade_date = (datetime.datetime.strptime(trade_date,"%Y%m%d") - datetime.timedelta(days=1)).strftime("%Y%m%d")
     to_mysql(df, f'data_{trade_date}', "replace")
     print(f'Get data success for : {trade_date}')
     return df
