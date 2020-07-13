@@ -25,6 +25,7 @@ engine = create_engine('mysql+pymysql://root:00000@localhost:3306/stocks')
 pro = ts.pro_api()
 
 KEY = "ts_code"
+DATE_FORMAT = "%Y%m%d"
 
 
 def get_stock_list():
@@ -172,12 +173,12 @@ def get_daily_basic_all(ts_codes=None, start_date='20180101'):
 
         # cur.execute(f"select trade_date from daily_basic where ts_code='{ts_code}' limit 1")
         # row_1 = cur.fetchone()
-        try:
-            df = pd.read_sql(f"select trade_date from daily_basic where ts_code='{ts_code}' limit 1", engine)
-            if len(df)>0:
-                continue
-        except:
-            pass
+        # try:
+        #     df = pd.read_sql(f"select trade_date from daily_basic where ts_code='{ts_code}' limit 1", engine)
+        #     if len(df)>0:
+        #         continue
+        # except:
+        #     pass
 
         str_ts_code += [ts_code]
         if i % 11 != 10 and i < len(ts_codes) - 1:
@@ -193,6 +194,18 @@ def get_daily_basic_all(ts_codes=None, start_date='20180101'):
         str_ts_code = []
 
     print(f"Get data from {start_date} success.")
+
+def incre_daily_basic():
+    '''
+    从当前表中最大日期的下一个交易日开始，补充所有股票数据
+    :return:
+    '''
+    df = pd.read_sql(f"select max(trade_date) from daily_basic limit 1", engine)
+    trade_date = df.iloc[0,0]
+    cur_date_ = datetime.datetime.strptime(trade_date,DATE_FORMAT)
+    start_date = (cur_date_ + datetime.timedelta(days=1)).strftime(DATE_FORMAT)
+    get_daily_basic_all(start_date=start_date)
+    print("success.")
 
 
 def get_daily_code_date(ts_code, start_date='20180101'):
@@ -210,7 +223,7 @@ def get_daily_code_date(ts_code, start_date='20180101'):
 
 def get_daily_basic_by_date(trade_date=None):
     if not trade_date:
-        trade_date = datetime.datetime.today().strftime("%Y%m%d")
+        trade_date = datetime.datetime.today().strftime(DATE_FORMAT)
     while True:
         print(f"start get data for {trade_date}")
         df = pro.query('daily_basic', ts_code='', trade_date=trade_date,)
@@ -218,7 +231,7 @@ def get_daily_basic_by_date(trade_date=None):
         if len(df) > 0:
             break
         else:
-            trade_date = (datetime.datetime.strptime(trade_date,"%Y%m%d") - datetime.timedelta(days=1)).strftime("%Y%m%d")
+            trade_date = (datetime.datetime.strptime(trade_date,DATE_FORMAT) - datetime.timedelta(days=1)).strftime(DATE_FORMAT)
     to_mysql(df, f'data_{trade_date}', "replace")
     print(f'Get data success for : {trade_date}')
     return df
@@ -239,8 +252,10 @@ if __name__ == '__main__':
     ## 每日指标
     # get_daily_basic_all()
 
+    incre_daily_basic()
+
     ## 获取某一天的数据
     # get_daily_code_date("002027.SZ")
-    get_daily_basic_by_date()
+    # get_daily_basic_by_date()
 
     print('done')
