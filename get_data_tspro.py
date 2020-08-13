@@ -161,6 +161,7 @@ def get_daily_basic_all(ts_codes=None, start_date='20180101'):
     :param ts_codes: 列表或者set
     :param start_date:
     """
+    print(f"Get data for daily basic from date: {start_date}")
     if not ts_codes:
         ts_codes = set(df_stock_lists.ts_code)
         print("Set ts_codes to all stock codes.")
@@ -209,8 +210,17 @@ def incre_daily_basic():
 
 
 def get_daily_code_date(ts_code, start_date='20180101'):
+    '''
+    获取某一只股票从 start_date开始的交易数据
+    :param ts_code:
+    :param start_date:
+    :return:
+    '''
     try:
-        pd.read_sql(f"delete from daily_basic where ts_code='{ts_code}'", engine)
+        pd.read_sql(f"""
+                delete from daily_basic where ts_code='{ts_code}'
+                and trade_date >= '{start_date}'
+                """, engine)
     except:
         pass
     print(f"delete data for {ts_code} success.")
@@ -222,18 +232,28 @@ def get_daily_code_date(ts_code, start_date='20180101'):
 
 
 def get_daily_basic_by_date(trade_date=None):
+    '''
+    获取某一个交易日的所有股票行情，若日期非交易日，则获取往前最近一个交易日
+    :param trade_date:
+    :return:
+    '''
     if not trade_date:
         trade_date = datetime.datetime.today().strftime(DATE_FORMAT)
     while True:
         print(f"start get data for {trade_date}")
-        df = pro.query('daily_basic', ts_code='', trade_date=trade_date,)
-        # df.to_sql(f'data_{trade_date}', engine, if_exists='replace')
+        try:
+            df = pd.read_sql(f"select * from data_{trade_date}", engine)
+            print(f'Get data from mysql success for : {trade_date}')
+        except:
+            df = pro.query('daily_basic', ts_code='', trade_date=trade_date,)
+            if len(df)>0:
+                to_mysql(df, f'data_{trade_date}', "replace")
+                print(f'Get data from tushare success for : {trade_date}')
         if len(df) > 0:
             break
         else:
             trade_date = (datetime.datetime.strptime(trade_date,DATE_FORMAT) - datetime.timedelta(days=1)).strftime(DATE_FORMAT)
-    to_mysql(df, f'data_{trade_date}', "replace")
-    print(f'Get data success for : {trade_date}')
+
     return df
 
 
