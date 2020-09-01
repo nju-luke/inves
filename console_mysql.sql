@@ -164,17 +164,46 @@ from (
 
 
 select * from fina_indicator
-where name='姚记科技'
+where name='姚记科技';
 
 
 
 
 -- 更新收益表
-select ts_code from stock_basic
-where name='洋河股份'
+select name, `industry` from stock_basic
+where name in ('泸州老窖','古井贡酒','西王食品','黑芝麻','燕京啤酒','*ST西发','酒鬼酒','承德露露','五粮液','顺鑫农业','张裕A','双汇发展','兰州黄河','三全食品','洋河股份','皇氏集团','得利斯','珠江啤酒','双塔食品','佳隆股份','涪陵榨菜','金字火腿','胜景山河(I','洽洽食品','百润股份','贝因美','好想你','青青稞酒','ST加加','克明面业','煌上煌','海欣食品','*ST麦趣','龙大肉食','燕塘乳业','ST科迪','桂发祥','华统股份','盐津铺子','庄园牧场','新乳业','西麦食品','甘源食品','汤臣倍健','华宝股份','三只松鼠','仙乐健康','科拓生物','古越龙山','上海梅林','ST中葡','重庆啤酒','莲花健康','吉林森工','伊力特','金种子酒','ST椰岛','维维股份','恒顺醋业','通葡股份','天润乳业','三元股份','贵州茅台','莫高股份','老白干酒','惠泉啤酒','光明乳业','青岛啤酒','金枫酒业','舍得酒业','水井坊','山西汾酒','星湖科技','中炬高新','妙可蓝多','伊利股份','会稽山','爱普股份','千禾味业','广州酒家','养元饮品','迎驾贡酒','海天味业','天味食品','安井食品','今世缘','绝味食品','惠发食品','口子窖','安记食品','有友食品','香飘飘','良品铺子','日辰股份','来伊份','ST威龙','桃李面包','元祖股份','金徽酒','均瑶健康','嘉必优')
+order by industry
+
+
+select d.ts_code, name, industry, pe, pb from stock_basic
+join data_20200812 d on stock_basic.ts_code = d.ts_code
+where industry = "互联网"
+
+
+select pe from daily_basic
+where ts_code='600519.sz'
+# where name='洋河股份'
 
 
 
-select name, industry, pe, pb from stock_basic
-join data_20200805 d on stock_basic.ts_code = d.ts_code
-where industry = "信托"
+## ROE FCF
+select fi.ts_code,name,roe_dt,close,pe_ttm,close1 from fina_indicator fi
+join
+(select ts_code from fina_indicator
+ where end_date='20171231' and netprofit_margin > 10
+ order by roa desc
+ limit 200) A
+on fi.ts_code=A.ts_code
+join (select ts_code, close, pe_ttm from data_20190430
+where pe_ttm<30 and total_mv > 1000000
+    )
+    db on fi.ts_code = db.ts_code
+join (select ts_code, close close1 from data_20200820)
+    db1 on fi.ts_code = db1.ts_code
+where end_date='20181231' and netprofit_margin > 10
+order by roa desc
+limit 20
+
+
+
+

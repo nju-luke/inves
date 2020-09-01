@@ -53,7 +53,7 @@ for _, row in df1.iterrows():
     i = names.index(row['name'])
     idx = indices[i]
     ws[f'Q{idx}'] = row['close']
-    # ws[f'R{idx}'] = ws[f'P{idx}'].value * row['close']
+    ws[f'R{idx}'] = f'=P{idx}*Q{idx}'#ws[f'P{idx}'].value * row['close']
     ws[f'S{idx}'] = row['total_mv']
     # total_ += ws[f'R{idx}'].value
 # ws[f'R{idx+1}'] = total_

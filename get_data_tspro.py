@@ -272,10 +272,10 @@ if __name__ == '__main__':
     ## 每日指标
     # get_daily_basic_all()
 
-    incre_daily_basic()
+    # incre_daily_basic()
 
     ## 获取某一天的数据
     # get_daily_code_date("002027.SZ")
-    # get_daily_basic_by_date()
+    get_daily_basic_by_date(trade_date='2020430')
 
     print('done')
