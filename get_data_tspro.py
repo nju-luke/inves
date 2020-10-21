@@ -46,7 +46,7 @@ def get_stock_list():
 df_stock_lists = get_stock_list()
 num_stocks = len(df_stock_lists)
 
-def download_fina_indicator_all(start_date=None, end_date=None):
+def download_fina_indicator_all(start_date=None, end_date=None, is_truncate_table=False):
     """
     财务指标数据，https://tushare.pro/document/2?doc_id=79
     # ## 初次建表
@@ -72,7 +72,8 @@ def download_fina_indicator_all(start_date=None, end_date=None):
     n_batch = 50
     idx_end = n_batch
     try:
-        pd.read_sql('truncate table fina_indicator',engine)
+        if is_truncate_table:
+            pd.read_sql('truncate table fina_indicator',engine)
     except:
         pass
     while idx_end < num_stocks:
@@ -257,10 +258,16 @@ def get_daily_basic_by_date(trade_date=None):
     return df
 
 
+
+
+
+
+
 if __name__ == '__main__':
-    # ## 初次建表 财务指标
+    # ## 初次建表 财务指标(报表数据）
     # engine.execute("drop table if exists fina_indicator ")
-    # download_fina_indicator_all(start_date='20141201')
+    # download_fina_indicator_all(start_date='20141201',is_truncate_table=True)
+    # download_fina_indicator_all(start_date='20200601')
 
     # df = get_fina_indicator('000001.SZ')
 
@@ -276,6 +283,6 @@ if __name__ == '__main__':
 
     ## 获取某一天的数据
     # get_daily_code_date("002027.SZ")
-    get_daily_basic_by_date(trade_date='2020430')
+    get_daily_basic_by_date(trade_date='20201016')
 
     print('done')
