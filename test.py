@@ -4,20 +4,12 @@ author: Luke
 datettime: 2020/7/6 21:01
 """
 
-code_dict = {'603589': '口子窖',
-             '000596': '古井贡酒',
-             '603189': '迎驾贡酒',
-             '600199': '金种子酒'}
-
-for k, v in list(code_dict.items()):
-    if "." in k: continue
-    surfix = '.SH' if k.startswith('6') else '.SZ'
-    code_dict.pop(k)
-    code_dict[k + surfix] = v
-
-data_df['oper_profit'] = data_df['revenue'] - (
-        data_df[["oper_cost", "int_exp", "comm_exp", "biz_tax_surchg", "sell_exp", "admin_exp", "prem_refund",
-                 "compens_payout", "reser_insur_liab", "div_payt", "reins_exp", "compens_payout_refu",
-                 "insur_reser_refu", "reins_cost_refund", "other_bus_cost"]] + data_df['fin_exp'].apply(
-    lambda x: x if x > 0 else 0) + data_df['assets_impair_loss'].apply(lambda x: x if x > 0 else 0)
-)
+with fig.batch_update():
+    fig.data[2].update(yaxis='y5')
+    fig.layout.update(yaxis5=dict(overlaying='y', side='right', anchor='x', showgrid=False), hovermode='closest')
+    fig.data[5].update(yaxis='y6')
+    fig.layout.update(yaxis5=dict(overlaying='y2', side='right', anchor='x2', showgrid=False), hovermode='closest')
+    fig.data[8].update(yaxis='y7')
+    fig.layout.update(yaxis5=dict(overlaying='y3', side='right', anchor='x3', showgrid=False), hovermode='closest')
+    fig.data[11].update(yaxis='y8')
+    fig.layout.update(yaxis5=dict(overlaying='y4', side='right', anchor='x4', showgrid=False), hovermode='closest')
