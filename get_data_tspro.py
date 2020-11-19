@@ -267,7 +267,7 @@ if __name__ == '__main__':
     # ## 初次建表 财务指标(报表数据）
     # engine.execute("drop table if exists fina_indicator ")
     # download_fina_indicator_all(start_date='20141201',is_truncate_table=True)
-    # download_fina_indicator_all(start_date='20200601')
+    download_fina_indicator_all(start_date='20200901')
 
     # df = get_fina_indicator('000001.SZ')
 
@@ -283,6 +283,6 @@ if __name__ == '__main__':
 
     ## 获取某一天的数据
     # get_daily_code_date("002027.SZ")
-    get_daily_basic_by_date(trade_date='20201016')
+    # get_daily_basic_by_date(trade_date='20201016')
 
     print('done')

@@ -216,8 +216,40 @@ on fi.ts_code = A.ts_code
 where end_date = '20181231'
   and netprofit_margin > 10
 order by roa desc
-limit 20
+limit 20;
 
 
+## roe/margin 选股
+select A.*,B.pe_ttm from (
+    select fi.name
+         , fi.ts_code
+         , avg(roe_dt)                avgr
+         , avg(grossprofit_margin)    avggm
+         , avg(netprofit_margin)      avgnm
+         , sum(if(roe_dt > 20, 1, 0)) cnt
+    from fina_indicator fi
+    join stock_basic db on fi.ts_code = db.ts_code
+    where instr(end_date, '0930') > 0 and db.list_date<'2016'
+    group by fi.name, fi.ts_code
+)A
+join data_20201118 B on A.ts_code=B.ts_code
+where avgr>12 and avgnm > 15 and cnt>=4
+order by cnt desc, avgr desc, avggm desc
+;
 
-
+select distinct db.name,db.ts_code,
+       fi.grossprofit_margin,
+       fi.netprofit_margin,
+       fi.roe_dt,
+       d.pe_ttm,
+    round(d.total_mv/10000,2) to
+from fina_indicator fi
+join stock_basic db on fi.ts_code = db.ts_code
+join data_20201118 d on fi.ts_code = d.ts_code
+where end_date='20200930' and db.list_date<'2016'
+and grossprofit_margin>40
+and netprofit_margin>15
+and pe_ttm < 50
+and roe_dt > 12
+order by grossprofit_margin desc
+limit 100;

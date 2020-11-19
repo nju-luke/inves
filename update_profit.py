@@ -46,7 +46,7 @@ while True:
 ts_codes = pd.read_sql(f'''select * from stock_basic where name in ('{"','".join(names)}')''', engine)
 daily_basic_df = get_daily_basic_by_date().reset_index(col_fill='ts_code')
 daily_basic_df['total_mv'] = daily_basic_df['total_mv'] / 10000
-df1 = pd.merge(ts_codes, daily_basic_df, on='ts_code').loc[:,['name','close','total_mv']]
+df1 = pd.merge(ts_codes, daily_basic_df, on='ts_code')#.loc[:,['name','close','total_mv']]
 
 # total_ = 0
 for _, row in df1.iterrows():
@@ -57,6 +57,34 @@ for _, row in df1.iterrows():
     ws[f'S{idx}'] = row['total_mv']
     # total_ += ws[f'R{idx}'].value
 # ws[f'R{idx+1}'] = total_
+
+
+## 获取持有股票名称
+ws1 = wb['持股及买卖点']
+
+row_n = 2
+indices = []
+names = []
+while True:
+    value = ws1[f'A{row_n}'].value
+    if not value or value == "总计":
+        break
+    indices.append(row_n)
+    names.append(value)
+    row_n += 1
+
+for _, row in df1.iterrows():
+    if not row['name'] in names: continue
+    i = names.index(row['name'])
+    idx = indices[i]
+    ws1[f'F{idx}'] = row['close']
+    ws1[f'G{idx}'] = row['total_mv']
+    ws1[f'H{idx}'] = row['total_share']/10000
+    ws1[f'J{idx}'] = f'=I{idx}*F{idx}'#ws[f'P{idx}'].value * row['close']
+    ws1[f'E{idx}'] = f'=D{idx}/H{idx}'
+    # total_ += ws[f'R{idx}'].value
+# ws[f'R{idx+1}'] = total_
+
 
 wb.save(excel_path)
 

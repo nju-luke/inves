@@ -40,17 +40,17 @@ def data_process(df, date_filter):
     return df
 
 
-def get_data(ts_code, date_filter):
-    balancesheet = pro.balancesheet(ts_code=ts_code)
+def get_data(ts_code, date_filter, report_type='1'):
+    balancesheet = pro.balancesheet(ts_code=ts_code, report_type=report_type)
     balancesheet = data_process(balancesheet,date_filter)
 
-    income = pro.income(ts_code=ts_code)
+    income = pro.income(ts_code=ts_code, report_type=report_type)
     income = data_process(income,date_filter)
 
-    cashflow = pro.cashflow(ts_code=ts_code)
+    cashflow = pro.cashflow(ts_code=ts_code, report_type=report_type)
     cashflow = data_process(cashflow,date_filter)
 
-    fina_indicator = pro.fina_indicator(ts_code=ts_code)
+    fina_indicator = pro.fina_indicator(ts_code=ts_code, report_type=report_type)
     fina_indicator = data_process(fina_indicator,date_filter)
 
     df1 = pd.merge(balancesheet, income, on='end_date', suffixes=('', '_inc'))
