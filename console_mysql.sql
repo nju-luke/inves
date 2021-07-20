@@ -242,7 +242,7 @@ select distinct db.name,db.ts_code,
        fi.netprofit_margin,
        fi.roe_dt,
        d.pe_ttm,
-    round(d.total_mv/10000,2) to
+    round(d.total_mv/10000,2) total_mv
 from fina_indicator fi
 join stock_basic db on fi.ts_code = db.ts_code
 join data_20201118 d on fi.ts_code = d.ts_code
