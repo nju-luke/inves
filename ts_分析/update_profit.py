@@ -11,7 +11,7 @@ datettime: 8/5/2020 16:17
 
 from openpyxl import load_workbook
 import pandas as pd
-from get_data_tspro import get_daily_basic_by_date, engine
+from ts_分析.get_data_tspro import get_daily_basic_by_date, engine
 import shutil
 
 excel_path = r"D:\synchronize\投资理财\买卖点模拟&记录.xlsx" #买卖点模拟&记录

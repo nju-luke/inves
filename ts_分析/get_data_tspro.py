@@ -5,7 +5,7 @@ datettime: 2020/7/3 7:47
 """
 import time
 
-from utils import to_mysql
+from ts_分析.utils import to_mysql
 
 # import pymysql
 
