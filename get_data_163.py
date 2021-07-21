@@ -172,7 +172,8 @@ class FinData:
 
 if __name__ == '__main__':
     # code = 600779  # 水井坊
-    code = 601225   # 陕西煤业
+    # code = 601225   # 陕西煤业
+    code = 600519
 
     fd = FinData(code, date_filter="12-31")
 
