@@ -30,28 +30,27 @@ eporttype = {
     '营运能力': {'url': 'http://quotes.money.163.com/service/zycwzb_{}.html?part=yynl', 'table': "zycwzb_yynl"},
 }
 keys = [
-'利润表',
- '资产负债表',
- '现金流量表',
- '财务报表摘要',
- '主要财务指标',
- '盈利能力',
- '偿还能力',
- '成长能力',
- '营运能力'
- ]
+    '利润表',
+    '资产负债表',
+    '现金流量表',
+    '财务报表摘要',
+    '主要财务指标',
+    '盈利能力',
+    '偿还能力',
+    '成长能力',
+    '营运能力'
+]
 tables = [
-'lrb',
- 'zcfzb',
- 'xjllb',
- 'cwbbzy',
- 'zycwzb',
- 'zycwzb_ylnl',
- 'zycwzb_chnl',
- 'zycwzb_cznl',
- 'zycwzb_yynl'
- ]
-
+    'lrb',
+    'zcfzb',
+    'xjllb',
+    'cwbbzy',
+    'zycwzb',
+    'zycwzb_ylnl',
+    'zycwzb_chnl',
+    'zycwzb_cznl',
+    'zycwzb_yynl'
+]
 
 
 def save_to_sql(code, key, df, table_name):
@@ -66,18 +65,16 @@ def save_to_sql(code, key, df, table_name):
     df.dropna(inplace=True, axis=1)
 
     # df['报告日期'] = df.iloc[:, 0].apply(lambda x: x.replace("(万元)", ""))
-    df['报告日期'] = df['报告日期'].apply(lambda x: x.replace("(万元)", ""))
+    # df['报告日期'] = df['报告日期'].apply(lambda x: x.replace("(万元)", ""))
+    # df['报告日期'] = df['报告日期'].apply(lambda x: x.replace("(%)", ""))
 
     df_names = pd.read_excel("网易财经数据字典.xlsx", key)
 
-    df = pd.merge(df_names, df, left_on='zh_name', right_on='报告日期')
+    df = pd.merge(df_names, df, left_on='ori_name', right_on='报告日期')
     df1 = df.set_index("en_name", drop=True).drop(["报告日期", "zh_name", "ori_name"], axis=1).T
 
     for col in df1.columns:
-        try:
-            df1[col] = df1[col].astype(int)
-        except:
-            df1[col] = df1[col].astype(float)
+        df1[col] = df1[col].astype(float)
 
     df1.reset_index(inplace=True)
     df1.rename(columns={'index': 'date'}, inplace=True)
@@ -94,7 +91,7 @@ headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:66.0)
 
 def download_data(url):
     req = requests.get(url, headers=headers)
-    text = req.text.replace("--", "-1").replace(" ","")
+    text = req.text.replace("--", "-1").replace(" ", "")
     data = StringIO(text)
 
     df = pd.read_csv(data)
@@ -108,7 +105,6 @@ def get_data_163(code):
         value = eporttype[key]
         url = value['url']
         table_name = value['table']
-        file_path = base_dir + f'{code}_{key}.csv'
         url = url.format(code)
 
         # urllib.request.urlretrieve(url, file_path)
@@ -122,16 +118,20 @@ def get_data_163(code):
     print(f'Done for {code}')
     return res
 
+
 def get_data(code, end_date):
     res = []
     for key in keys:
         value = eporttype[key]
         url = value['url'].format(code)
         table_name = value['table']
+        flag = True
+        try:
+            df = pd.read_sql(f"select * from {table_name} where code={code}", engine)
+        except:
+            flag = False
 
-        df = pd.read_sql(f"select * from {table_name} where code={code}", engine)
-
-        if len(df) == 0 or (end_date is not None and max(df['date']) < end_date):
+        if not flag or (len(df) == 0 or (end_date is not None and max(df['date']) < end_date)):
             df = download_data(url)
             df = save_to_sql(code, key, df, table_name)
         else:
@@ -161,21 +161,28 @@ class FinData:
 
     def get_data(self, end_date):
         res = get_data(self.code, end_date)
+        if self.date_filter:
+            for i, df in enumerate(res):
+                res[i] = df[df['date'].apply(lambda x: x.endswith(self.date_filter))]
         for i, df in enumerate(res):
-            res[i] = df[df['date'].apply(lambda x: x.endswith(self.date_filter))]
+            res[i] = df.set_index("date", drop=True)
 
         self.lrb, self.zcfzb, self.xjllb, self.cwbbzy, \
         self.zycwzb, self.zycwzb_ylnl, self.zycwzb_chnl, \
         self.zycwzb_cznl, self.zycwzb_yynl = res
+
+        self.zycwzb = pd.concat([self.zycwzb, self.zycwzb_ylnl, self.zycwzb_chnl,
+                                 self.zycwzb_cznl, self.zycwzb_yynl], axis=1).drop('code', axis=1)
+
+        del self.zycwzb_ylnl, self.zycwzb_chnl, self.zycwzb_cznl, self.zycwzb_yynl
 
 
 
 if __name__ == '__main__':
     # code = 600779  # 水井坊
     # code = 601225   # 陕西煤业
-    code = 600519
+    code = 601225
 
     fd = FinData(code, date_filter="12-31")
-
 
     print('done')
