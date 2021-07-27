@@ -16,7 +16,11 @@ base_dir = 'data/'
 
 from sqlalchemy import create_engine, VARCHAR
 
-engine = create_engine('mysql+pymysql://root:00000@localhost:3306/stocks_163')
+import sys
+sys.path.append(os.path.expanduser("~"))
+from mtools_settings import *
+
+engine = create_engine(f'mysql+pymysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{NAME}')
 
 eporttype = {
     '利润表': {'url': 'http://quotes.money.163.com/service/lrb_{}.html', 'table': "lrb"},
